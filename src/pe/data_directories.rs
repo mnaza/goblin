@@ -107,7 +107,7 @@ impl DataDirectories {
                 count, NUM_DATA_DIRECTORIES
             )));
         }
-        for dir in data_directories.iter_mut().take(count) {
+        for (ii, dir) in data_directories.iter_mut().enumerate().take(count) {
             let dd = DataDirectory::parse(bytes, offset)?;
             let dd = if dd.virtual_address == 0 && dd.size == 0 {
                 None

@@ -3,6 +3,7 @@
 /// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#the-attribute-certificate-table-image-only
 /// https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-win_certificate
 use crate::error;
+use log::warn;
 use scroll::{ctx, Pread, Pwrite};
 
 use alloc::string::ToString;
@@ -163,7 +164,7 @@ pub(crate) fn enumerate_certificates(
     // Here, we do not want wrapping semantics as it means that a too big table size or table start
     // offset will provide table_end_offset such that table_end_offset < table_start_offset, which
     // is not desirable at all.
-    let table_end_offset =
+    let mut table_end_offset =
         table_start_offset.saturating_add(usize::try_from(table_size).map_err(|_err| {
             error::Error::Malformed("Certificate table size do not fit in a usize".to_string())
         })?);
@@ -172,16 +173,20 @@ pub(crate) fn enumerate_certificates(
 
     // End offset cannot be further than the binary we have at hand.
     if table_end_offset > bytes.len() {
-        return Err(error::Error::Malformed(
-            "End of attribute certificates table is after the end of the PE binary".to_string(),
-        ));
+        table_end_offset = bytes.len();
+        //        return Err(error::Error::Malformed(
+        //            "End of attribute certificates table is after the end of the PE binary".to_string(),
+        //        ));
     }
 
     // This is guaranteed to terminate, either by a malformed error being returned
     // or because current_offset >= table_end_offset by virtue of current_offset being strictly
     // increasing through `AttributeCertificate::parse`.
     while current_offset < table_end_offset {
-        attrs.push(AttributeCertificate::parse(bytes, &mut current_offset)?);
+        match AttributeCertificate::parse(bytes, &mut current_offset) {
+            Ok(ss) => attrs.push(ss),
+            Err(e) => warn!("{e}"),
+        }
     }
 
     Ok(attrs)

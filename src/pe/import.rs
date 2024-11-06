@@ -262,28 +262,22 @@ impl<'a> SyntheticImportDirectoryEntry<'a> {
                 None
             }
         };
-
-        let import_address_table_offset = &mut utils::find_offset(
+        let mut import_address_table = Vec::new();
+        if let Some(import_address_table_offset) = &mut utils::find_offset(
             import_directory_entry.import_address_table_rva as usize,
             sections,
             file_alignment,
             opts,
-        )
-        .ok_or_else(|| {
-            error::Error::Malformed(format!(
-                "Cannot map import_address_table_rva {:#x} into offset for {}",
-                import_directory_entry.import_address_table_rva, name
-            ))
-        })?;
-        let mut import_address_table = Vec::new();
-        loop {
-            let import_address = bytes
-                .gread_with::<T>(import_address_table_offset, LE)?
-                .into();
-            if import_address == 0 {
-                break;
-            } else {
-                import_address_table.push(import_address);
+        ) {
+            loop {
+                let import_address = bytes
+                    .gread_with::<T>(import_address_table_offset, LE)?
+                    .into();
+                if import_address == 0 {
+                    break;
+                } else {
+                    import_address_table.push(import_address);
+                }
             }
         }
         Ok(SyntheticImportDirectoryEntry {
@@ -339,6 +333,9 @@ impl<'a> ImportData<'a> {
                 })?;
         debug!("import data offset {:#x}", offset);
         let mut import_data = Vec::new();
+        if *offset >= bytes.len() {
+            return Ok(ImportData { import_data });
+        }
         loop {
             let import_directory_entry: ImportDirectoryEntry =
                 bytes.gread_with(offset, scroll::LE)?;

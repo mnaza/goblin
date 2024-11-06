@@ -42,7 +42,6 @@ impl<'a> DebugData<'a> {
             CodeviewPDB70DebugInfo::parse_with_opts(bytes, &image_debug_directory, opts)?;
         let codeview_pdb20_debug_info =
             CodeviewPDB20DebugInfo::parse_with_opts(bytes, &image_debug_directory, opts)?;
-
         Ok(DebugData {
             image_debug_directory,
             codeview_pdb70_debug_info,
@@ -164,7 +163,11 @@ impl<'a> CodeviewPDB70DebugInfo<'a> {
         let filename_length = filename_length as usize;
 
         // check the codeview signature
-        let codeview_signature: u32 = bytes.gread_with(&mut offset, scroll::LE)?;
+        let codeview_signature = bytes.gread_with(&mut offset, scroll::LE);
+        if codeview_signature.is_err() {
+            return Ok(None);
+        }
+        let codeview_signature: u32 = codeview_signature.unwrap();
         if codeview_signature != CODEVIEW_PDB70_MAGIC {
             return Ok(None);
         }
@@ -234,8 +237,12 @@ impl<'a> CodeviewPDB20DebugInfo<'a> {
         let filename_length = filename_length as usize;
 
         // check the codeview signature
-        let codeview_signature: u32 = bytes.gread_with(&mut offset, scroll::LE)?;
-        if codeview_signature != CODEVIEW_PDB20_MAGIC {
+        let codeview_signature = bytes.gread_with(&mut offset, scroll::LE);
+        if codeview_signature.is_err() {
+            return Ok(None);
+        }
+        let codeview_signature: u32 = codeview_signature.unwrap();
+        if codeview_signature != CODEVIEW_PDB70_MAGIC {
             return Ok(None);
         }
         let codeview_offset: u32 = bytes.gread_with(&mut offset, scroll::LE)?;

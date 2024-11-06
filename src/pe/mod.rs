@@ -219,7 +219,6 @@ impl<'a> PE<'a> {
                     opts,
                 )?);
             }
-
             if let Some(tls_table) = optional_header.data_directories.get_tls_table() {
                 tls_data = if is_64 {
                     tls::TlsData::parse_with_opts::<u64>(
@@ -242,7 +241,6 @@ impl<'a> PE<'a> {
                 };
                 debug!("tls data: {:#?}", tls_data);
             }
-
             if header.coff_header.machine == header::COFF_MACHINE_X86_64 {
                 // currently only x86_64 is supported
                 debug!("exception data: {:#?}", exception_data);
@@ -258,7 +256,6 @@ impl<'a> PE<'a> {
                     )?);
                 }
             }
-
             // Parse attribute certificates unless opted out of
             let certificate_table_size = if opts.parse_attribute_certificates {
                 if let Some(&certificate_table) =
